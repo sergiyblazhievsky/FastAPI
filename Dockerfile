@@ -20,8 +20,8 @@ COPY app/ ./app/
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
 USER appuser
 
-# Експонування порту
+# Експонування порту (Railway автоматично визначає порт через змінну середовища PORT)
 EXPOSE 8000
 
-# Команда запуску
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Команда запуску (використовує PORT з Railway або 8000 за замовчуванням)
+CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
