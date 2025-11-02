@@ -1,0 +1,46 @@
+# Deploy to Railway: автоматичний деплой на Railway
+name: Deploy to Railway
+
+on:
+  push:  # Автоматичний запуск workflow при кожному push (зміни у вибраних гілках)
+    branches: [ main ]  # Запуск при пуші в main
+  workflow_dispatch:  # Дозволяє запускати workflow вручну через GitHub UI (Actions > Run workflow)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code  # Клонує репозиторій
+      uses: actions/checkout@v4
+
+    - name: Install Railway CLI  # Встановлення Railway CLI
+      run: |
+        curl -fsSL https://railway.app/install.sh | sh
+        echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+    - name: Deploy to Railway  # Деплой проекту
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: |
+        railway deploy
+
+  notify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify deployment status  # Відправка повідомлення про статус деплойменту
+      env:
+        WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"✅ Deployment to Railway successful!"}' \
+            $WEBHOOK_URL
+        else
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ Deployment to Railway failed!"}' \
+            $WEBHOOK_URL
+        fi
